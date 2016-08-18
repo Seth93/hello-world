@@ -1,266 +1,180 @@
-/*
-Copyright IBM Corp. 2016 All Rights Reserved.
-Licensed under the IBM India Pvt Ltd, Version 1.0 (the "License");
-*/
-
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	"github.com/ibm-ciav/address"
-	"github.com/ibm-ciav/customer"
-	"github.com/ibm-ciav/identification"
-	"github.com/ibm-ciav/kyc"
+	"encoding/json"
 )
 
-type ServicesChaincode struct {
+
+type  SimpleChaincode struct {
 }
 
-/*
-   Deploy KYC data model
-*/
-func (t *ServicesChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
-	identification.CreateTable(stub, args)
-	customer.CreateTable(stub, args)
-	kyc.CreateTable(stub, args)
-	address.CreateTable(stub, args)
-	return nil, nil
+
+type Patient struct {
+	
+	Id               string 
+	Name            string 
+	Address           string
+	Phone			string
+	Email			string 
 }
 
-/*
-  Add Customer record
-*/
-func (t *ServicesChaincode) addCIAV(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	if len(args) != 43 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 43")
-	}
-	// Common
-	customer_id := args[0]
-	source := args[1]
 
-	// Identification
-	identity_number := args[2]
-	poi_type := args[3]
-	poi_doc := args[4]
-	poi_expiry_date := args[5]
 
-	identity_number2 := args[28]
-	poi_type2 := args[29]
-	poi_doc2 := args[30]
-	poi_expiry_date2 := args[31]
+func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+    if len(args) != 1 {
+        return nil, errors.New("Incorrect number of arguments. Expecting 1")
+    }
 
-	// Customer personal details
-	first_name := args[6]
-	last_name := args[7]
-	sex := args[8]
-	email_id := args[9]
-	dob := args[10]
-	phone_number := args[11]
-	occupation := args[12]
-	annual_income := args[13]
-	income_source := args[14]
+    err := stub.PutState("hello_world", []byte(args[0]))
+    if err != nil {
+        return nil, err
+    }
 
-	//kyc
-	kyc_status := args[15]
-	last_updated := args[16]
-
-	// Address
-	address_id := args[17]
-	address_type := args[18]
-	door_number := args[19]
-	street := args[20]
-  locality := args[21]
-	city :=args[22]
-	state := args[23]
-	pincode := args[24]
-	poa_type := args[25]
-	poa_doc := args[26]
-	poa_expiry_date := args[27]
-
-	address_id2 := args[32]
-	address_type2 := args[33]
-	door_number2 := args[34]
-	street2 := args[35]
-	locality2 := args[36]
-	city2 :=args[37]
-	state2 := args[38]
-	pincode2 := args[39]
-	poa_type2 := args[40]
-	poa_doc2 := args[41]
-	poa_expiry_date2 := args[42]
-
-	identification.AddIdentification(stub, []string{customer_id, identity_number, poi_type, poi_doc, poi_expiry_date, source})
-	customer.AddCustomer(stub, []string{customer_id, first_name, last_name, sex, email_id, dob, phone_number, occupation, annual_income, income_source, source})
-	kyc.AddKYC(stub, []string{customer_id, kyc_status, last_updated, source})
-	address.AddAddress(stub, []string{customer_id, address_id, address_type, door_number, street, locality, city, state, pincode, poa_type, poa_doc, poa_expiry_date, source})
-
-	if args[28] != "" {
-		identification.AddIdentification(stub, []string{customer_id, identity_number2, poi_type2, poi_doc2, poi_expiry_date2, source})
-	}
-	if args[32] != "" {
-		address.AddAddress(stub, []string{customer_id, address_id2, address_type2, door_number2, street2, locality2, city2, state2, pincode2, poa_type2, poa_doc2, poa_expiry_date2, source})
-	}
-	return nil, nil
+    return nil, nil
 }
 
-/*
- Update customer record
-*/
-func (t *ServicesChaincode) updateCIAV(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	if len(args) != 43 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 43")
-	}
-	// Common
-	customer_id := args[0]
-	source := args[1]
+func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+    fmt.Println("invoke is running " + function)
 
-	// Identification
-	identity_number := args[2]
-	poi_type := args[3]
-	poi_doc := args[4]
-	poi_expiry_date := args[5]
+    // Handle different functions
+    if function == "init" {
+        return t.Init(stub, "init", args)
+    } else if function == "write" {
+        return t.write(stub, args)
+    } else if function == "create_patient" {
+    	return t.create_patient(stub,args)
+    }
+    fmt.Println("invoke did not find func: " + function)
 
-	identity_number2 := args[28]
-	poi_type2 := args[29]
-	poi_doc2 := args[30]
-	poi_expiry_date2 := args[31]
-
-	// Customer personal details
-	first_name := args[6]
-	last_name := args[7]
-	sex := args[8]
-	email_id := args[9]
-	dob := args[10]
-	phone_number := args[11]
-	occupation := args[12]
-	annual_income := args[13]
-	income_source := args[14]
-
-	//kyc
-	kyc_status := args[15]
-	last_updated := args[16]
-
-	// Address
-	address_id := args[17]
-	address_type := args[18]
-	door_number := args[19]
-	street := args[20]
-	locality := args[21]
-	city := args[22]
-	state := args[23]
-	pincode := args[24]
-	poa_type := args[25]
-	poa_doc := args[26]
-	poa_expiry_date := args[27]
-
-	address_id2 := args[32]
-	address_type2 := args[33]
-	door_number2 := args[34]
-	street2 := args[35]
-	locality2 := args[36]
-	city2 :=args[37]
-	state2 := args[38]
-	pincode2 := args[39]
-	poa_type2 := args[40]
-	poa_doc2 := args[41]
-	poa_expiry_date2 := args[42]
-
-	identification.UpdateIdentification(stub, []string{customer_id, identity_number, poi_type, poi_doc, poi_expiry_date, source})
-	customer.UpdateCustomer(stub, []string{customer_id, first_name, last_name, sex, email_id, dob, phone_number, occupation, annual_income, income_source, source})
-	kyc.UpdateKYC(stub, []string{customer_id, kyc_status, last_updated, source})
-	address.UpdateAddress(stub, []string{customer_id, address_id, address_type, door_number, street, locality, city, state, pincode, poa_type, poa_doc, poa_expiry_date, source})
-
-	if args[28] != "" {
-		identification.UpdateIdentification(stub, []string{customer_id, identity_number2, poi_type2, poi_doc2, poi_expiry_date2, source})
-	}
-	if args[32] != "" {
-		address.UpdateAddress(stub, []string{customer_id, address_id2, address_type2, door_number2, street2, locality2, city2, state2, pincode2, poa_type2, poa_doc2, poa_expiry_date2, source})
-	}
-	return nil, nil
+    return nil, errors.New("Received unknown function invocation")
 }
 
-/*
-   Invoke : addCIAV and updateCIAV
-*/
-func (t *ServicesChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) write(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    var name, value string
+    var err error
+    fmt.Println("running write()")
 
-	if function == "addCIAV" {
-		// add customer
-		return t.addCIAV(stub, args)
-	} else if function == "updateCIAV" {
-		// update customer
-		return t.updateCIAV(stub, args)
-	}
+    if len(args) != 2 {
+        return nil, errors.New("Incorrect number of arguments. Expecting 2. name of the variable and value to set")
+    }
 
-	return nil, errors.New("Received unknown function invocation")
+    name = args[0]                            //rename for fun
+    value = args[1]
+    err = stub.PutState(name, []byte(value))  //write the variable into the chaincode state
+    if err != nil {
+        return nil, err
+    }
+    return nil, nil
 }
 
-/*
- 		Get Customer record by customer id or PAN number
-*/
-func (t *ServicesChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
-	if function == "getCIAV" {
-		return t.getCIAV(stub, args)
-	}
-	return nil, errors.New("Received unknown function invocation")
+
+func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+    fmt.Println("query is running " + function)
+
+    // Handle different functions
+    if function == "read" {                            //read a variable
+        return t.read(stub, args)
+    }else if function == "retrieve_patient" {
+    	p,err := t.retrieve_patient(stub,args)
+    	
+    	if err != nil { fmt.Printf("QUERY: Error retrieving Id: %s", err); return nil, errors.New("QUERY: Error retrieving id "+err.Error()) }
+    	
+    	fmt.Println("The Patient found"+p.Name)
+    	 bytes, err := json.Marshal(p)
+    	return bytes, err
+    	
+    }
+    fmt.Println("query did not find func: " + function)
+
+    return nil, errors.New("Received unknown function query")
 }
 
-func (t *ServicesChaincode) getCIAV(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
-	var jsonResp string
-	var customerIds []string
-	var err error
 
-	var identificationStr string
-	var customerStr string
-	var kycStr string
-	var addressStr string
-	if args[0] == "PAN" {
-		customerIds, err = identification.GetCustomerID(stub, args[1])
-		jsonResp = "["
-		for i := range customerIds {
-			customerId := customerIds[i]
-			identificationStr, err = identification.GetIdentification(stub, customerId)
-			customerStr, err = customer.GetCustomer(stub, customerId)
-			kycStr, err = kyc.GetKYC(stub, customerId)
-			addressStr, err = address.GetAddress(stub, customerId)
+func (t *SimpleChaincode) read(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    var name, jsonResp string
+    var err error
 
-			if i != 0 {
-				jsonResp = jsonResp + ","
-			}
-			jsonResp = jsonResp + "{\"Identification\":" + identificationStr +
-				",\"PersonalDetails\":" + customerStr +
-				",\"KYC\":" + kycStr +
-				",\"address\":" + addressStr + "}"
-		}
-			jsonResp = jsonResp + "]"
-	} else if args[0] == "CUST_ID" {
-		customerId := args[1]
-		identificationStr, err = identification.GetIdentification(stub, customerId)
-		customerStr, err = customer.GetCustomer(stub, customerId)
-		kycStr, err = kyc.GetKYC(stub, customerId)
-		addressStr, err = address.GetAddress(stub, customerId)
+    if len(args) != 1 {
+        return nil, errors.New("Incorrect number of arguments. Expecting name of the var to query")
+    }
 
-		jsonResp = "{\"Identification\":" + identificationStr +
-			",\"PersonalDetails\":" + customerStr +
-			",\"KYC\":" + kycStr +
-			",\"address\":" + addressStr + "}"
-	} else {
-		return nil, errors.New("Invalid arguments. Please query by CUST_ID or PAN")
-	}
+    name = args[0]
+    valAsbytes, err := stub.GetState(name)
+    if err != nil {
+        jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
+        return nil, errors.New(jsonResp)
+    }
 
-	bytes, err := json.Marshal(jsonResp)
-	if err != nil {
-		return nil, errors.New("Error converting kyc record")
-	}
-	return bytes, nil
+    return valAsbytes, nil
 }
+
+func (t *SimpleChaincode) create_patient(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+   
+   var err error
+   
+   var p Patient
+   
+   id :=  "\"Id\":\""+args[0]+"\", "
+   name := "\"Name\":\""+args[1]+"\", "
+   address := "\"Address\":\""+args[2]+"\", "
+   phone := "\"Phone\":\""+args[3]+"\", "
+   email :=  "\"Email\":\""+args[4]+"\""
+   
+   json_string :="{"+id+name+address+phone+email+"}"
+   
+   err = json.Unmarshal([]byte(json_string), &p)
+   
+   if err != nil { return nil, errors.New("Invalid JSON object") }
+   
+   
+	 _, err  = t.save_changes(stub, p)
+	  
+   if err != nil {
+        return nil, err
+    }
+   
+    return nil, nil
+}
+
+
+
+
+func (t *SimpleChaincode) retrieve_patient(stub *shim.ChaincodeStub, args []string) (Patient, error) {
+   var p Patient
+   
+   bytes, err := stub.GetState(args[0])	
+   
+    if err != nil {	fmt.Printf("RETRIEVE_Patient: Failed to invoke patient_code: %s", err); return p, errors.New("RETRIEVE_Patient: Error retrieving Patient with id = " + args[0]) }
+    
+   err = json.Unmarshal(bytes, &p)	
+   
+   if err != nil {	fmt.Printf("RETRIEVE_Patient:  patient record "+string(bytes)+": %s", err); return p, errors.New("RETRIEVE_Patient:  Patient record"+string(bytes))	}
+   
+   
+    return p, nil
+}
+
+func (t *SimpleChaincode) save_changes(stub *shim.ChaincodeStub, p Patient) (bool, error) {
+	 
+	bytes, err := json.Marshal(p)
+	
+																if err != nil { fmt.Printf("SAVE_CHANGES: Error converting Patient record: %s", err); return false, errors.New("Error converting Patient record") }
+
+	err = stub.PutState(p.Id, bytes)
+	
+																if err != nil { fmt.Printf("SAVE_CHANGES: Error storing Patient record: %s", err); return false, errors.New("Error storing Patient record") }
+	
+	return true, nil
+}
+
+
 
 func main() {
-	err := shim.Start(new(ServicesChaincode))
-	if err != nil {
-		fmt.Printf("Error starting ServicesChaincode: %s", err)
-	}
+    err := shim.Start(new(SimpleChaincode))
+    if err != nil {
+        fmt.Printf("Error starting Simple chaincode: %s", err)
+    }
 }
